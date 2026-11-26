@@ -35,7 +35,7 @@ test('Runde mit echten Schlusskursen und Lesetipps', async ({ page }) => {
   await page.getByRole('link', { name: 'Back' }).click()
   await page.getByRole('link', { name: 'Back' }).click()
   await page.getByRole('button', { name: 'Start round' }).click()
-  await expect(page.getByText('running')).toBeVisible()
+  await expect(page.getByText('running', { exact: true })).toBeVisible()
   await expect(page.locator('li').getByText('Real closing prices')).toBeVisible()   // Badge an der Runde
 
   // Lesetipp anlegen (nur https)

@@ -53,7 +53,7 @@ test('Kernablauf: Beitritt, eine Entscheidung je Tag, Abrechnung, Datenschutz', 
   await page.getByLabel('Demo round (fast-forward, reset)').check()
   await page.getByRole('button', { name: 'Create round' }).click()
   await page.getByRole('button', { name: 'Start round' }).click()
-  await expect(page.getByText('running')).toBeVisible()
+  await expect(page.getByText('running', { exact: true })).toBeVisible()
   await logout(page)
 
   // ── Schüler/in tritt mit Pseudonym bei und bekommt 10.000 $

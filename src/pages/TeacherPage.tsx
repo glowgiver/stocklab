@@ -4,6 +4,7 @@ import { useApp } from '../app'
 import { Badge, Button, Card, H2, Input, Label, Notice, Segmented } from '../components/ui'
 import type { TeacherClass, TeacherRound } from '../lib/types'
 import { formatDateTime } from '../lib/logic'
+import { ManageRound, RenameForm } from '../components/Manage'
 
 export default function TeacherPage() {
   const { backend, t, tError } = useApp()
@@ -80,6 +81,14 @@ function ClassCard({ c, reload }: { c: TeacherClass; reload: () => Promise<void>
         </div>
       </div>
 
+      <details className="mt-1">
+        <summary className="cursor-pointer text-sm font-medium text-slate-600">{t('renameClass')}</summary>
+        <div className="mt-2">
+          <RenameForm id={`rc-${c.id}`} current={c.name} label={t('newClassName')}
+            onSave={name => act(() => backend.rpc('rename_class', { p_class: c.id, p_name: name }))} />
+        </div>
+      </details>
+
       <ul className="mt-2 divide-y divide-slate-100">
         {c.rounds.map(r => <RoundRow key={r.id} r={r} act={act} />)}
       </ul>
@@ -138,6 +147,7 @@ function RoundRow({ r, act }: { r: TeacherRound; act: (fn: () => Promise<unknown
         {r.status === 'active' && <Button variant="secondary" onClick={() => { if (confirm(t('confirmEnd'))) act(() => backend.rpc('end_round', { p_round: r.id })) }}>{t('endRound')}</Button>}
         {r.status !== 'draft' && <Link to={`/teacher/round/${r.id}`} className="inline-flex min-h-11 items-center rounded-lg bg-teal-700 px-4 text-sm font-semibold text-white hover:bg-teal-800">{t('open')}</Link>}
       </div>
+      <ManageRound key={r.name} r={r} act={act} />
     </li>
   )
 }
