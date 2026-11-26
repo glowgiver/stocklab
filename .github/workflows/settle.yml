@@ -1,0 +1,27 @@
+name: Daily settlement
+on:
+  schedule:
+    - cron: '30 23 * * 1-5'   # 23:30 UTC, Mo–Fr: nach US-Börsenschluss UND nach dem Google-Protokoll (ca. 23:15 Berlin)
+  workflow_dispatch:
+jobs:
+  settle:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm }
+      - run: npm ci
+      - run: node --experimental-strip-types scripts/settle.ts
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          # Externe Kurse sind AUS, bis EOD_LICENSE_CONFIRMED=yes gesetzt ist (bewusste Entscheidung, siehe README):
+          MARKET_PROVIDER: ${{ vars.MARKET_PROVIDER }}          # 'google_sheet', 'massive' oder 'http'
+          SHEET_CSV_URL: ${{ vars.SHEET_CSV_URL }}              # für 'google_sheet'
+          MASSIVE_API_KEY: ${{ secrets.MASSIVE_API_KEY }}
+          EOD_API_URL_TEMPLATE: ${{ vars.EOD_API_URL_TEMPLATE }}
+          EOD_API_KEY: ${{ secrets.EOD_API_KEY }}
+          EOD_MIN_INTERVAL_MS: ${{ vars.EOD_MIN_INTERVAL_MS }}
+          EOD_CLOSE_PATH: ${{ vars.EOD_CLOSE_PATH }}
+          EOD_DATE_PATH: ${{ vars.EOD_DATE_PATH }}
+          EOD_LICENSE_CONFIRMED: ${{ vars.EOD_LICENSE_CONFIRMED }}
