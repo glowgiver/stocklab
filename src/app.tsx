@@ -8,6 +8,7 @@ import StudentPage from './pages/StudentPage'
 import TeacherPage from './pages/TeacherPage'
 import RoundPage from './pages/RoundPage'
 import PricesPage from './pages/PricesPage'
+import PasswordPage from './pages/PasswordPage'
 
 type Role = 'student' | 'teacher' | null
 
@@ -40,6 +41,7 @@ function Shell({ children }: { children: ReactNode }) {
           <button className="min-h-11 rounded-lg px-3 text-sm font-medium text-slate-700 hover:bg-slate-100"
             aria-label={lang === 'de' ? 'Switch to English' : 'Auf Deutsch wechseln'}
             onClick={() => setLang(lang === 'de' ? 'en' : 'de')}>{lang === 'de' ? 'EN' : 'DE'}</button>
+          {role && <a href="#/password" className="inline-flex min-h-11 items-center rounded-lg px-3 text-sm font-medium text-slate-700 hover:bg-slate-100">{t('passwordLink')}</a>}
           {role && <Button variant="ghost" onClick={signOut}>{t('logout')}</Button>}
         </div>
       </header>
@@ -110,6 +112,7 @@ function Inner({ backend }: { backend: Backend }) {
           <Route path="/teacher" element={<Guard need="teacher"><TeacherPage /></Guard>} />
           <Route path="/teacher/round/:id" element={<Guard need="teacher"><RoundPage /></Guard>} />
           <Route path="/teacher/round/:id/prices" element={<Guard need="teacher"><PricesPage /></Guard>} />
+          <Route path="/password" element={role ? <PasswordPage /> : <Navigate to="/" replace />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </Shell>

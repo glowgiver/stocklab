@@ -22,6 +22,14 @@ export function createSupabaseBackend(url: string, anonKey: string): Backend {
     async signOut() {
       await sb.auth.signOut()
     },
+    async changePassword(current, next) {
+      const { data } = await sb.auth.getUser()
+      if (!data.user?.email) throw new Error('not_authenticated')
+      const check = await sb.auth.signInWithPassword({ email: data.user.email, password: current })
+      if (check.error) throw new Error('wrong_current_password')
+      const { error } = await sb.auth.updateUser({ password: next })
+      if (error) throw error
+    },
     async rpc<T>(fn: string, args: Record<string, unknown> = {}) {
       const { data, error } = await sb.rpc(fn, args)
       if (error) throw new Error(error.message)

@@ -3,6 +3,7 @@
 // nicht für echte Schülerdaten gedacht.
 import { PGlite } from '@electric-sql/pglite'
 import shim from '../../supabase/local/shim.sql?raw'
+import localPassword from '../../supabase/local/password.sql?raw'
 import type { Backend, Credentials } from './backend'
 
 const migrations = import.meta.glob('../../supabase/migrations/*.sql', {
@@ -20,7 +21,7 @@ export async function createLocalBackend(): Promise<Backend> {
   const persistent = !(import.meta.env.VITE_LOCAL_MEMORY === '1')
   // Der Datenbankname enthält einen Fingerabdruck des Schemas: ändern sich die Migrationen,
   // startet automatisch eine frische Demo-Datenbank (statt mit einem veralteten Stand weiterzulaufen).
-  const schemaId = (await sha(shim + Object.keys(migrations).sort().map(k => migrations[k]).join('\n'))).slice(0, 8)
+  const schemaId = (await sha(shim + localPassword + Object.keys(migrations).sort().map(k => migrations[k]).join('\n'))).slice(0, 8)
   const db = new PGlite(persistent ? `idb://stocklab-local-${schemaId}` : undefined)
   await db.waitReady
 
@@ -28,6 +29,7 @@ export async function createLocalBackend(): Promise<Backend> {
   if (!has.rows[0].t) {
     await db.exec(shim)
     for (const k of Object.keys(migrations).sort()) await db.exec(migrations[k])
+    await db.exec(localPassword)
   }
 
   const uid = () => localStorage.getItem(USER_KEY)
@@ -83,6 +85,11 @@ export async function createLocalBackend(): Promise<Backend> {
       localStorage.setItem(USER_KEY, r.rows[0].id)
     },
     async signOut() { localStorage.removeItem(USER_KEY) },
+    async changePassword(current, next) {
+      const ok = await db.query(`select 1 from auth.users where id = $1 and pw_hash = $2`, [uid(), await sha(current)])
+      if (!ok.rows.length) throw new Error('wrong_current_password')
+      await db.query(`update auth.users set pw_hash = $2 where id = $1`, [uid(), await sha(next)])
+    },
     async rpc<T>(fn: string, args: Record<string, unknown> = {}) {
       const keys = Object.keys(args)
       const call = keys.map((k, i) => `${k} => $${i + 1}`).join(', ')

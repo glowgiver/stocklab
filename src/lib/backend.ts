@@ -11,6 +11,8 @@ export interface Backend {
   signUp(email: string, password: string): Promise<void>
   signIn(email: string, password: string): Promise<void>
   signOut(): Promise<void>
+  /** Eigenes Passwort ändern; prüft zuerst das bisherige. */
+  changePassword(current: string, next: string): Promise<void>
   rpc<T = unknown>(fn: string, args?: Record<string, unknown>): Promise<T>
   /** Nur lokaler Demo-Modus: Hinweise für die Login-Seite (Lehrkraft-Code). */
   hint?(): Promise<{ teacherCode: string; demo?: { teacher: Credentials; student: Credentials } } | null>
@@ -43,6 +45,8 @@ export function errorCode(e: unknown): string {
   const m = msg.match(/\b(not_authenticated|forbidden|invalid_[a-z_]+|insufficient_[a-z]+|pseudonym_taken|already_member|round_[a-z_]+|no_[a-z_]+|decision_[a-z_]+|demo_only|immutable_record|prices_[a-z_]+)\b/)
   if (m) return m[1]
   if (/email_confirmation_enabled/.test(msg)) return 'email_confirmation'
+  if (/wrong_current_password/.test(msg)) return 'wrong_current_password'
+  if (/different from the old/i.test(msg)) return 'same_password'
   if (/already registered|already been registered|user_already_exists/i.test(msg)) return 'user_exists'
   if (/invalid login|invalid_credentials/i.test(msg)) return 'invalid_credentials'
   if (/password/i.test(msg) && /(least|short|weak)/i.test(msg)) return 'weak_password'

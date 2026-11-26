@@ -11,6 +11,7 @@ export async function freshDb(): Promise<PGlite> {
     await db.exec(readFileSync(join(root, 'migrations', f), 'utf8'))
   }
   await db.exec(readFileSync(join(root, 'local', 'clock.sql'), 'utf8'))
+  await db.exec(readFileSync(join(root, 'local', 'password.sql'), 'utf8'))
   return db
 }
 

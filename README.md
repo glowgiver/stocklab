@@ -59,8 +59,10 @@ echtes Supabase-Projekt gelaufen** — das ist der erste Test nach dem Anlegen d
 - **Pseudonyme:** Die App kennt nur ein erfundenes Pseudonym. Die Zuordnung Pseudonym → Person
   führst du auf Papier, nie in der App. Es gibt keine echten E-Mail-Adressen von Schülern (intern
   wird `pseudonym.klassencode@students.stocklab.invalid` verwendet).
-- **Passwort vergessen:** nicht zurücksetzbar (keine E-Mail). Lösung: neues Pseudonym oder
-  das Konto im Supabase-Dashboard (Authentication → Users) löschen.
+- **Passwort vergessen (Schüler):** Lehrkraft-Ansicht → Klasse → „Schüler/innen & Passwörter“ →
+  „Neues Passwort“ (wird einmal angezeigt, alte Sitzungen enden). Selbst ändern: oben „Passwort“.
+  Lehrkraft ausgesperrt: im Supabase-SQL-Editor
+  `update auth.users set encrypted_password = extensions.crypt('NEU', extensions.gen_salt('bf')) where email = 'DEINE-EMAIL';`
 - Vor dem Einsatz Schulleitung/Datenschutzbeauftragte kurz informieren (Dienst mit Servern in der EU).
 - Schüler sehen nur ihr eigenes Depot und ihre Entscheidungen; auch nicht die Pseudonyme der
   Mitschüler. Die Wandstatistik zeigt nur Zahlen.
@@ -151,4 +153,4 @@ auf der Handelsseite und nutzt sie als Beleg im Journal.
 
 Passiver Benchmark-Vergleich (der ETF ist da, aber noch kein automatischer Buy-and-hold-Vergleich),
 Preiswirkung der Klasse auf den Kurs (nur bei simulierten Kursen sinnvoll), automatischer Kursabruf nach
-geklärter Lizenz (Adapter vorhanden, nicht gegen eine echte API getestet), Passwort-Reset durch Lehrkraft.
+geklärter Lizenz (Adapter vorhanden, nicht gegen eine echte API getestet).

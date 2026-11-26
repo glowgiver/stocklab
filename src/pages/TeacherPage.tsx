@@ -5,6 +5,7 @@ import { Badge, Button, Card, H2, Input, Label, Notice, Segmented } from '../com
 import type { TeacherClass, TeacherRound } from '../lib/types'
 import { formatDateTime } from '../lib/logic'
 import { ManageRound, RenameForm } from '../components/Manage'
+import Students from '../components/Students'
 
 export default function TeacherPage() {
   const { backend, t, tError } = useApp()
@@ -88,6 +89,8 @@ function ClassCard({ c, reload }: { c: TeacherClass; reload: () => Promise<void>
             onSave={name => act(() => backend.rpc('rename_class', { p_class: c.id, p_name: name }))} />
         </div>
       </details>
+
+      <Students classId={c.id} />
 
       <ul className="mt-2 divide-y divide-slate-100">
         {c.rounds.map(r => <RoundRow key={r.id} r={r} act={act} />)}
