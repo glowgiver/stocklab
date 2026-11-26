@@ -50,23 +50,26 @@ function einrichten() {
  *   jetzt:     Date
  *   zeilen:    [[symbol, price, tradetime(Date)], …]
  *   vorhanden: { "2026-11-25|AAPL": true, … }
- *   fmt:       function(date, muster) → Text in New-York-Zeit
+ *   fmtJetzt:  function(date, muster) → Text in New-York-Zeit (für „jetzt“)
+ *   fmtZeit:   function(date, muster) → Text in der Zeitzone der TABELLE (für tradetime).
+ *              GOOGLEFINANCE liefert tradetime als New-Yorker Uhrzeit ohne Zeitzone; die Tabelle
+ *              deutet sie in ihrer eigenen Zone. Nur so formatiert steht wieder „16:00“ da.
  */
-function neueZeilen(jetzt, zeilen, vorhanden, fmt) {
-  var heute = fmt(jetzt, 'yyyy-MM-dd');
-  var stundeJetzt = Number(fmt(jetzt, 'HH'));
+function neueZeilen(jetzt, zeilen, vorhanden, fmtJetzt, fmtZeit) {
+  var heute = fmtJetzt(jetzt, 'yyyy-MM-dd');
+  var stundeJetzt = Number(fmtJetzt(jetzt, 'HH'));
   var out = [];
   zeilen.forEach(function (z) {
     var symbol = z[0], preis = z[1], zeit = z[2];
     if (typeof preis !== 'number' || !(preis > 0)) return;          // #N/A o. Ä.
     if (!zeit || typeof zeit.getTime !== 'function') return;
-    var tag = fmt(zeit, 'yyyy-MM-dd');
-    var stunde = Number(fmt(zeit, 'HH'));
+    var tag = fmtZeit(zeit, 'yyyy-MM-dd');
+    var stunde = Number(fmtZeit(zeit, 'HH'));
     if (tag > heute) return;
     if (tag === heute && stundeJetzt < 16) return;                  // Börse noch offen
     if (stunde < 12) return;                                        // letzter Handel am Vormittag → kein Schlusskurs
     if (vorhanden[tag + '|' + symbol]) return;                      // Feiertag/Doppellauf
-    out.push([tag, symbol, preis, fmt(zeit, 'yyyy-MM-dd HH:mm')]);
+    out.push([tag, symbol, preis, fmtZeit(zeit, 'yyyy-MM-dd HH:mm')]);
   });
   return out;
 }
@@ -79,8 +82,10 @@ function protokollieren() {
   var log = ss.getSheetByName('Protokoll');
   var vorhanden = {};
   log.getDataRange().getDisplayValues().slice(1).forEach(function (r) { vorhanden[r[0] + '|' + r[1]] = true; });
-  var neu = neueZeilen(new Date(), zeilen, vorhanden, function (d, m) {
-    return Utilities.formatDate(d, BOERSE, m);
-  });
+  var inZone = function (zone) {
+    return function (d, m) { return Utilities.formatDate(d, zone, m); };
+  };
+  var neu = neueZeilen(new Date(), zeilen, vorhanden, inZone(BOERSE), inZone(ss.getSpreadsheetTimeZone()));
   if (neu.length) log.getRange(log.getLastRow() + 1, 1, neu.length, 4).setValues(neu);
+  console.log(neu.length + ' neue Kurse protokolliert');
 }

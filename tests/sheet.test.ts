@@ -38,28 +38,35 @@ describe('Kursquelle Google-Tabelle', () => {
 describe('Google-Skript: was darf ins Protokoll?', () => {
   const ctx: any = {}
   runInNewContext(readFileSync(join(import.meta.dirname, '..', 'google', 'Code.gs'), 'utf8'), ctx)
-  const fmt = (d: Date, muster: string) => {
+  const inZone = (timeZone: string) => (d: Date, muster: string) => {
     const p = Object.fromEntries(new Intl.DateTimeFormat('en-CA', {
-      timeZone: 'America/New_York', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hourCycle: 'h23',
+      timeZone, year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hourCycle: 'h23',
     }).formatToParts(d).map(x => [x.type, x.value]))
     return muster.replace('yyyy', p.year).replace('MM', p.month).replace('dd', p.day).replace('HH', p.hour).replace('mm', p.minute)
   }
-  const run = (jetzt: string, zeilen: unknown[], vorhanden = {}) =>
-    JSON.parse(JSON.stringify(ctx.neueZeilen(new Date(jetzt), zeilen, vorhanden, fmt)))
-  const close = new Date('2026-11-25T21:00:00Z')          // Mi 16:00 New York
+  // Wie echtes Google Sheets: die Tabelle steht in Europe/Berlin, tradetime zeigt die New-Yorker
+  // Uhrzeit („16:00“) — das Date-Objekt ist also 16:00 BERLIN (= 15:00 UTC im Winter).
+  const wanduhr = (tag: string, uhr: string) => new Date(`${tag}T${uhr}:00+01:00`)
+  const run = (jetzt: string, zeilen: unknown[], vorhanden = {}, tabellenZone = 'Europe/Berlin') =>
+    JSON.parse(JSON.stringify(ctx.neueZeilen(new Date(jetzt), zeilen, vorhanden, inZone('America/New_York'), inZone(tabellenZone))))
+  const close = wanduhr('2026-11-25', '16:00')
 
-  it('nach Börsenschluss wird der Schlusskurs protokolliert', () => {
+  it('nach Börsenschluss wird der Schlusskurs protokolliert (Tabelle in deutscher Zeitzone)', () => {
     expect(run('2026-11-25T22:15:00Z', [['AAPL', 193.09, close]]))
       .toEqual([['2026-11-25', 'AAPL', 193.09, '2026-11-25 16:00']])
   })
+  it('auch eine Tabelle in New-York-Zeit funktioniert', () => {
+    expect(run('2026-11-25T22:15:00Z', [['AAPL', 193.09, new Date('2026-11-25T21:00:00Z')]], {}, 'America/New_York')[0][3])
+      .toBe('2026-11-25 16:00')
+  })
   it('während der Handelszeit nichts', () => {
-    expect(run('2026-11-25T17:00:00Z', [['AAPL', 190, new Date('2026-11-25T16:40:00Z')]])).toEqual([])
+    expect(run('2026-11-25T17:00:00Z', [['AAPL', 190, wanduhr('2026-11-25', '12:40')]])).toEqual([])
   })
   it('Feiertag: alter Kurs ist schon protokolliert → nichts Neues, kein falsches Datum', () => {
     expect(run('2026-11-26T22:15:00Z', [['AAPL', 193.09, close]], { '2026-11-25|AAPL': true })).toEqual([])
   })
   it('verkürzter Handelstag (Schluss 13:00) zählt', () => {
-    expect(run('2026-11-27T22:15:00Z', [['AAPL', 195, new Date('2026-11-27T18:00:00Z')]])[0][0]).toBe('2026-11-27')
+    expect(run('2026-11-27T22:15:00Z', [['AAPL', 195, wanduhr('2026-11-27', '13:00')]])[0][0]).toBe('2026-11-27')
   })
   it('Fehlerwerte werden übersprungen', () => {
     expect(run('2026-11-25T22:15:00Z', [['AAPL', '#N/A', close], ['KO', 62, ''], ['NKE', 0, close]])).toEqual([])
