@@ -17,7 +17,7 @@ jobs:
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
           # Externe Kurse sind AUS, bis EOD_LICENSE_CONFIRMED=yes gesetzt ist (bewusste Entscheidung, siehe README):
           MARKET_PROVIDER: ${{ vars.MARKET_PROVIDER }}          # 'google_sheet', 'massive' oder 'http'
-          SHEET_CSV_URL: ${{ vars.SHEET_CSV_URL }}              # für 'google_sheet'
+          SHEET_CSV_URL: ${{ secrets.SHEET_CSV_URL }}              # für 'google_sheet'
           MASSIVE_API_KEY: ${{ secrets.MASSIVE_API_KEY }}
           EOD_API_URL_TEMPLATE: ${{ vars.EOD_API_URL_TEMPLATE }}
           EOD_API_KEY: ${{ secrets.EOD_API_KEY }}

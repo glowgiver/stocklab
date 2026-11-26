@@ -119,7 +119,7 @@ Beide Märkte sind in der Datenbank getrennt und mischen sich nie.
    Funktion `einrichten` ausführen und die Berechtigung erteilen.
 2. Zum ersten Befüllen nach US-Börsenschluss (oder am Wochenende) einmal `protokollieren` ausführen.
 3. In der Tabelle: Datei → Freigeben → Im Web veröffentlichen → Blatt **Protokoll** → **CSV** → Link kopieren.
-4. GitHub → Settings → Variables: `SHEET_CSV_URL` = Link, `MARKET_PROVIDER` = `google_sheet`,
+4. GitHub → Settings → Secrets: `SHEET_CSV_URL` = Link. Variables: `MARKET_PROVIDER` = `google_sheet`,
    `EOD_LICENSE_CONFIRMED` = `yes`.
 5. Runde mit „Echte Schlusskurse“ anlegen → in GitHub „Daily settlement“ → „Run workflow“ (holt die Startkurse) → Runde starten.
 
