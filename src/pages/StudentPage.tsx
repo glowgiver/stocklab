@@ -42,6 +42,10 @@ export default function StudentPage() {
   )
 }
 
+function describe(t: ReturnType<typeof useApp>['t'], d: { action: 'buy' | 'sell' | 'hold'; quantity: number | null }, asset?: AssetInfo) {
+  return d.action === 'hold' ? t('hold') : `${d.action === 'buy' ? t('buy') : t('sell')} ${d.quantity} × ${asset?.symbol ?? ''}`
+}
+
 // ───────────────────────────── Handeln ─────────────────────────────
 
 function TradeView({ ov, reload }: { ov: Overview; reload: () => Promise<void> }) {
@@ -58,8 +62,31 @@ function TradeView({ ov, reload }: { ov: Overview; reload: () => Promise<void> }
     return pts.length ? pts : []
   }, [ov.snapshots])
 
+  const waiting = (ov.history ?? []).filter(h => h.status === 'pending')
+
   return (
     <div className="space-y-4">
+      {waiting.map(h => {
+        const a = h.asset_id ? byId.get(h.asset_id) : undefined
+        const open = ov.round!.status === 'active' && h.trading_date === ov.next_trading_date
+        return (
+          <Notice key={h.id} kind="warn">
+            <div data-testid="pending-box">
+              <strong>{t('pendingTitle', { what: describe(t, h, a) })}</strong>
+              {h.action !== 'hold' && a?.price != null && <> · {t('pendingEstimate', { sum: money(h.quantity! * a.price, locale) })}</>}
+              <span className="mt-1 block">
+                {h.action === 'hold'
+                  ? t('pendingHold', { date: formatDate(h.trading_date, locale) })
+                  : t('pendingExplain', { date: formatDate(h.trading_date, locale) })}
+              </span>
+              <span className="mt-1 block">
+                {open ? t('pendingOpen', { time: formatDateTime(ov.deadline, locale, ov.round!.timezone) }) : t('pendingClosed')}
+              </span>
+            </div>
+          </Notice>
+        )
+      })}
+
       <Card>
         <H2>{t('yourPortfolio')}</H2>
         <div className="flex flex-wrap items-baseline gap-x-6 gap-y-1">
@@ -137,6 +164,11 @@ function DecisionForm({ ov, assets, reload }: { ov: Overview; assets: AssetInfo[
   const q = Number.parseInt(qty, 10)
   const estimate = asset?.price && Number.isFinite(q) ? q * asset.price : null
   const tooShort = [expectation, reasoning, evidence, risks].some(s => s.trim().length < 10)
+  const changed = !!pending && (
+    action !== pending.action
+    || (action !== 'hold' && (assetId !== pending.asset_id || q !== pending.quantity))
+    || expectation !== pending.expectation || reasoning !== pending.reasoning
+    || evidence !== pending.evidence || risks !== pending.risks)
 
   async function submit(ev: FormEvent) {
     ev.preventDefault()
@@ -159,6 +191,7 @@ function DecisionForm({ ov, assets, reload }: { ov: Overview; assets: AssetInfo[
         {t('deadlineIs', { time: formatDateTime(ov.deadline, locale, ov.round!.timezone) })}
         {pending && <> <Badge tone="teal">{t('alreadySubmitted')}</Badge></>}
       </p>
+      <p className="mb-3 rounded-lg bg-slate-100 px-3 py-2 text-sm text-slate-800">{t('oneDecisionRule')}</p>
       <form onSubmit={submit} className="space-y-4">
         <Segmented label={t('action')} value={action} onChange={setAction}
           options={[{ value: 'buy', label: t('buy') }, { value: 'sell', label: t('sell') }, { value: 'hold', label: t('hold') }]} />
@@ -211,9 +244,10 @@ function DecisionForm({ ov, assets, reload }: { ov: Overview; assets: AssetInfo[
           </div>
         </fieldset>
 
-        {error && <Notice kind="error">{error}</Notice>}
+        {error && <Notice kind="error">{error}{pending && <span className="mt-1 block">{t('oldStays', { what: describe(t, pending, assets.find(a => a.id === pending.asset_id)) })}</span>}</Notice>}
         {saved && <Notice kind="ok">{saved}</Notice>}
-        <Button type="submit" disabled={busy || tooShort || (action !== 'hold' && !(q > 0))} className="w-full sm:w-auto">
+        {changed && <p className="text-sm font-medium text-amber-900">{t('willReplace', { what: describe(t, pending, assets.find(a => a.id === pending.asset_id)) })}</p>}
+        <Button type="submit" disabled={busy || tooShort || (action !== 'hold' && !(q > 0)) || (!!pending && !changed)} className="w-full sm:w-auto">
           {pending ? t('updateDecision') : t('submitDecision')}
         </Button>
         {tooShort && <p className="text-xs text-slate-600">{t('needAllFour')}</p>}

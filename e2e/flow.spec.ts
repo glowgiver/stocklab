@@ -74,18 +74,27 @@ test('Kernablauf: Beitritt, eine Entscheidung je Tag, Abrechnung, Datenschutz', 
   await page.getByRole('button', { name: 'Submit decision' }).click()
   await expect(page.getByText('Saved. You can still change it until')).toBeVisible()
 
+  // ── Vorgemerkt: gelber Kasten erklärt, warum das Bargeld noch gleich ist
+  await expect(page.getByTestId('pending-box')).toContainText('Pending: Buy 5 × AAPL')
+  await expect(page.getByTestId('pending-box')).toContainText('Not executed yet.')
+  await expect(page.getByTestId('cash')).toHaveText('$10,000.00')
+  await expect(page.getByText('This replaces:')).toHaveCount(0)                       // noch nichts geändert
+  await expect(page.getByRole('button', { name: 'Replace my decision' })).toBeDisabled()
+  await expect(page.getByText('One decision per trading day')).toBeVisible()
+
   // ── Zweite Abgabe am selben Tag ändert nur die bestehende (Button heißt jetzt „Update“)
   await page.getByLabel('Shares').fill('7')
-  await page.getByRole('button', { name: 'Update decision' }).click()
-  await expect(page.getByText('Saved. You can still change it until')).toBeVisible()
+  await expect(page.getByText('This replaces: Buy 5 × AAPL')).toBeVisible()
+  await page.getByRole('button', { name: 'Replace my decision' }).click()
+  await expect(page.getByTestId('pending-box')).toContainText('Pending: Buy 7 × AAPL')
 
   // ── Überausgabe wird abgelehnt (klare Fehlermeldung)
   await page.getByLabel('Shares').fill('100000')
-  await page.getByRole('button', { name: 'Update decision' }).click()
-  await expect(page.getByRole('alert')).toHaveText('You do not have enough cash for that.')
+  await page.getByRole('button', { name: 'Replace my decision' }).click()
+  await expect(page.getByRole('alert')).toContainText('You do not have enough cash for that.')
+  await expect(page.getByRole('alert')).toContainText('Your previous decision stays: Buy 7 × AAPL')
   await page.getByLabel('Shares').fill('7')
-  await page.getByRole('button', { name: 'Update decision' }).click()
-  await expect(page.getByText('Saved. You can still change it until')).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Replace my decision' })).toBeDisabled()
 
   // ── Datenschutz: Lehrkraft-Seite ist für Schüler gesperrt
   await page.goto('/#/teacher')
